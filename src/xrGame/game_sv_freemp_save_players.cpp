@@ -57,6 +57,7 @@ void game_sv_freemp::SavePlayer(game_PlayerState* ps, CInifile* file)
 
 		file->w_u32("actor", "items_count", id);
 		file->w_u32("actor", "money", ps->money_for_round);
+		file->w_u8("actor", "team", ps->team);
 	}
 }
 
@@ -66,6 +67,12 @@ bool game_sv_freemp::LoadPlayer(game_PlayerState* ps, CInifile* file)
 	{
 		u32 count = file->r_u32("actor", "items_count");
 		ps->money_for_round = file->r_u32("actor", "money");
+
+		SpawnItemToActor(ps->GameID, "device_torch");
+		SpawnItemToActor(ps->GameID, "wpn_knife");
+		SpawnItemToActor(ps->GameID, "device_pda");
+		SpawnItemToActor(ps->GameID, "wpn_binoc");
+
 
 		Msg("[game_sv_freemp] LoadPlayer [%s] items[%d]", ps->getName(), count);
 
@@ -147,9 +154,23 @@ bool game_sv_freemp::HasSaveFile(game_PlayerState* ps)
 	xr_strcpy(filename, ps->getName());
 	xr_strcat(filename, ".ltx");
 	FS.update_path(path, "$mp_saves$", filename);
-	CInifile* file = xr_new<CInifile>(path, true);
+	bool exist = false;
+	FS.rescan_path(path, true);
 
-	return file->section_exist("actor");
+
+	if (FS.exist(path))
+	{
+		CInifile* file = xr_new<CInifile>(path, true);
+		if (file)  
+		if (file->section_exist("actor"))
+		if (file->line_exist("actor", "team"))
+			ps->team = file->r_u8("actor", "team");
+
+		exist = file->section_exist("actor");
+		file->Destroy(file);
+	}
+
+	return exist;
 }
 
 void game_sv_freemp::SaveInvBox(CSE_ALifeInventoryBox* box, CInifile* file)
